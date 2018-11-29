@@ -50,11 +50,20 @@ class Chat extends CI_Controller {
                 ->result();
 			
 			// Decode all messages first
-			foreach($chats as &$chat) {
+			/*foreach($chats as &$chat) { // Compatibility issue persist
 				if ($chat->send_to == $this->user->id) {
 					$chat->messages = $this->cryptochat->decrypt($chat->messages, $this->user->priv);
 				} else {
 					$chat->messages = $this->cryptochat->decrypt($chat->messages, $friend->priv);
+				}
+			}*/
+			// Compatibly decode all messages
+			$keys = array_keys($chats); // Deals with both numeric and associative keys
+			foreach($keys as $k) {
+				if ($chats[$k]->send_to == $this->user->id) {
+					$chats[$k]->messages = $this->cryptochat->decrypt($chats[$k]->messages, $this->user->priv);
+				} else {
+					$chats[$k]->messages = $this->cryptochat->decrypt($chats[$k]->messages, $friend->priv);
 				}
 			}
 
