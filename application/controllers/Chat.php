@@ -8,6 +8,7 @@ class Chat extends CI_Controller {
         $this->load->database();
         $this->load->helper(array('url', 'form'));
         $this->load->library('user_agent');
+		$this->load->library('cryptochat');
 
 		// If this controller accessed before login, redirect it back.
         if (!isset($this->session->userdata['logged_in']) || $this->session->userdata['logged_in'] === false) {
@@ -47,6 +48,11 @@ class Chat extends CI_Controller {
                 ->limit(100)
                 ->get()
                 ->result();
+			
+			// Decode all messages first
+			foreach($chats as &$chat) {
+				$chat->messages = $this->cryptochat->decrypt($chat->messages, $friend->priv);
+			}
 
             $result = array(
                 'name' => $friend->name,
@@ -57,8 +63,13 @@ class Chat extends CI_Controller {
     }
 
     public function sendMessage() {
+		// Get send_to (receiver) public key
+		$pub = $this->db->get_where('users', array('id' => $this->input->post('chatWith')), 1)->row()->pub;
+		// Encrypt the messages
+		$ciphertext = $this->cryptochat->encrypt(htmlentities($this->input->post('messages', true)), $pub);
+		// Add to db
         $this->db->insert('chats', array(
-            'messages' => htmlentities($this->input->post('messages', true)),
+            'messages' => $ciphertext,
             'send_to' => $this->input->post('chatWith'),
             'send_by' => $this->user->id
         ));

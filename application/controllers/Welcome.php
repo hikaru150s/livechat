@@ -65,17 +65,33 @@ class Welcome extends CI_Controller {
 				// It is required to include the PHP path to environment variables to use this plugin
 				$pub = '';
 				$priv = '';
-				//$pair = $this->rsa->generate();
-				//$pub = $pair['public'];
-				//$priv = $pair['private'];
-				// Add to db
-				$status = $this->db->insert('users', array(
-					'username'	=> $username,
-					'name'		=> $name,
-					'password'	=> $hashedpassword,
-					'pub'		=> $pub,
-					'priv'		=> $priv
-				));
+				$pair = $this->rsa->generate();
+				$pub = $pair['public'];
+				$priv = $pair['private'];
+				
+				// Wait there! Need some trick here ...
+				$status = false;
+				if ($this->db->count_all('users') == 0) { // If there are no user, ...
+					// Add to db
+					$status = $this->db->insert('users', array(
+						'username'			=> $username,
+						'name'				=> $name,
+						'password'			=> $hashedpassword,
+						'pub'				=> $pub,
+						'priv'				=> $priv,
+						'customer_service'	=> 1 // Make this user as customer service
+					));
+				} else { // Otherwise just add as regular user
+					// Add to db
+					$status = $this->db->insert('users', array(
+						'username'			=> $username,
+						'name'				=> $name,
+						'password'			=> $hashedpassword,
+						'pub'				=> $pub,
+						'priv'				=> $priv
+					));
+				}
+				
 				// Notify
 				if ($status) {
 					$data['info'] = "Register successful! You can login now.";
