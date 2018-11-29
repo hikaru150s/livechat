@@ -51,7 +51,11 @@ class Chat extends CI_Controller {
 			
 			// Decode all messages first
 			foreach($chats as &$chat) {
-				$chat->messages = $this->cryptochat->decrypt($chat->messages, $friend->priv);
+				if ($chat->send_to == $this->user->id) {
+					$chat->messages = $this->cryptochat->decrypt($chat->messages, $this->user->priv);
+				} else {
+					$chat->messages = $this->cryptochat->decrypt($chat->messages, $friend->priv);
+				}
 			}
 
             $result = array(
