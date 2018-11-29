@@ -8,7 +8,7 @@ class Chat extends CI_Controller {
         $this->load->database();
         $this->load->helper(array('url', 'form'));
         $this->load->library('user_agent');
-		$this->load->library('cryptochat');
+	$this->load->library('CryptoChat');
 
 		// If this controller accessed before login, redirect it back.
         if (!isset($this->session->userdata['logged_in']) || $this->session->userdata['logged_in'] === false) {
