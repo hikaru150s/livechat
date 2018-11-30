@@ -5,10 +5,11 @@ class Chat extends CI_Controller {
     public function __construct() {
         parent::__construct();
         $this->load->library('session');
-        $this->load->database();
+        $this->load->model('users_model');
+		$this->load->model('chats_model');
         $this->load->helper(array('url', 'form'));
         $this->load->library('user_agent');
-	$this->load->library('CryptoChat');
+		$this->load->library('CryptoChat');
 
 		// If this controller accessed before login, redirect it back.
         if (!isset($this->session->userdata['logged_in']) || $this->session->userdata['logged_in'] === false) {
@@ -16,15 +17,15 @@ class Chat extends CI_Controller {
         }
 
         // Save current user data
-		$this->user = $this->db->get_where('users', array('id' => $this->session->userdata['id']), 1)->row();
+		$this->user = $this->users_model->getById($this->session->userdata['id']);
     }
 
     public function index() {
 		// If user is customer service, get all another user. Otherwise, just get customer service
 		if ($this->user->customer_service == 1) {
-			$contact = $this->db->where('id !=', $this->user->id)->get('users');
+			$contact = $this->users_model->getContactList();
 		} else {
-			$contact = $this->db->where('customer_service =', 1)->get('users');
+			$contact = $this->users_model->getCustomerService();
 		}
         $this->load->view('chat_dashboard', array(
             'contact' => $contact
@@ -35,19 +36,10 @@ class Chat extends CI_Controller {
         header('Content-Type: application/json');
         if ($this->input->is_ajax_request()) {
             // Find friend
-            $friend = $this->db->get_where('users', array('id' => $this->input->post('chatWith')), 1)->row();
+			$friend = $this->users_model->getById($this->input->post('chatWith'));
 
             // Get Chats
-            $chats = $this->db
-                ->select('chats.*, users.name')
-                ->from('chats')
-                ->join('users', 'chats.send_by = users.id')
-                ->where('(send_by = '. $this->user->id .' AND send_to = '. $friend->id .')')
-                ->or_where('(send_to = '. $this->user->id .' AND send_by = '. $friend->id .')')
-                ->order_by('chats.time', 'desc')
-                ->limit(100)
-                ->get()
-                ->result();
+			$chats = $this->chats_model->getChats($this->user->id, $friend->id);
 			
 			// Decode all messages first
 			/*foreach($chats as &$chat) { // Compatibility issue persist
@@ -77,11 +69,11 @@ class Chat extends CI_Controller {
 
     public function sendMessage() {
 		// Get send_to (receiver) public key
-		$pub = $this->db->get_where('users', array('id' => $this->input->post('chatWith')), 1)->row()->pub;
+		$pub = $this->users_model->getById($this->input->post('chatWith'))->pub;
 		// Encrypt the messages
 		$ciphertext = $this->cryptochat->encrypt(htmlentities($this->input->post('messages', true)), $pub);
 		// Add to db
-        $this->db->insert('chats', array(
+        $this->chats_model->insert(array(
             'messages' => $ciphertext,
             'send_to' => $this->input->post('chatWith'),
             'send_by' => $this->user->id

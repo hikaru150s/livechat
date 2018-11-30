@@ -6,25 +6,10 @@ class Welcome extends CI_Controller {
 	public function __construct() {
 		parent::__construct();
 		$this->load->library(array('session', 'rsa'));
-		$this->load->database();
+		$this->load->model('users_model');
 		$this->load->helper(array('url', 'form'));
 	}
 
-	/**
-	 * Index Page for this controller.
-	 *
-	 * Maps to the following URL
-	 * 		http://example.com/index.php/welcome
-	 *	- or -
-	 * 		http://example.com/index.php/welcome/index
-	 *	- or -
-	 * Since this controller is set as the default controller in
-	 * config/routes.php, it's displayed at http://example.com/
-	 *
-	 * So any other public methods not prefixed with an underscore will
-	 * map to /index.php/welcome/<method_name>
-	 * @see https://codeigniter.com/user_guide/general/urls.html
-	 */
 	public function index() {
 		// Initialize data handler
 		$data = array();
@@ -35,7 +20,7 @@ class Welcome extends CI_Controller {
 			$password = $this->input->post('password', true);
 			if ($username !== '' && $password !== '') {
 				// Verify username and password
-				$db = $this->db->get_where('users', array('username' => $username), 1)->row();
+				$db = $this->users_model->getByUsername($username);
 				if ($db !== null & $db !== false && password_verify($password, $db->password)) {
 					$userdata = array(
 						'id'	=> $db->id,
@@ -71,9 +56,9 @@ class Welcome extends CI_Controller {
 				
 				// Wait there! Need some trick here ...
 				$status = false;
-				if ($this->db->count_all('users') == 0) { // If there are no user, ...
+				if ($this->users_model->count() == 0) { // If there are no user, ...
 					// Add to db
-					$status = $this->db->insert('users', array(
+					$status = $this->users_model->insert(array(
 						'username'			=> $username,
 						'name'				=> $name,
 						'password'			=> $hashedpassword,
@@ -83,7 +68,7 @@ class Welcome extends CI_Controller {
 					));
 				} else { // Otherwise just add as regular user
 					// Add to db
-					$status = $this->db->insert('users', array(
+					$status = $this->users_model->insert(array(
 						'username'			=> $username,
 						'name'				=> $name,
 						'password'			=> $hashedpassword,
